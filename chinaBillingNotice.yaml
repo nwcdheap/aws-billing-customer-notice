@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Get billing information from labmda'
+Mappings:
+  CronSchedule:
+    '12AM':
+      Value: cron(0 16 * * ? *)
+    '01AM':
+      Value: cron(0 17 * * ? *)
+    '02AM':
+      Value: cron(0 18 * * ? *)   
+    '03AM':
+      Value: cron(0 19 * * ? *)
+    '04AM':
+      Value: cron(0 20 * * ? *)
+    '05AM':
+      Value: cron(0 21 * * ? *) 
+    '06AM':
+      Value: cron(0 22 * * ? *)
+    '07AM':
+      Value: cron(0 23 * * ? *)
+    '08AM':
+      Value: cron(0 0 * * ? *) 
+    '09AM':
+      Value: cron(0 1 * * ? *)
+    '10AM':
+      Value: cron(0 2 * * ? *)
+    '11AM':
+      Value: cron(0 3 * * ? *)  
+    '12PM':
+      Value: cron(0 4 * * ? *)  
+    '01PM':
+      Value: cron(0 5 * * ? *)  
+    '02PM':
+      Value: cron(0 6 * * ? *)  
+    '03PM':
+      Value: cron(0 7 * * ? *)  
+    '04PM':
+      Value: cron(0 8 * * ? *)  
+    '05PM':
+      Value: cron(0 9 * * ? *)  
+    '06PM':
+      Value: cron(0 10 * * ? *)  
+    '07PM':
+      Value: cron(0 11 * * ? *)  
+    '08PM':
+      Value: cron(0 12 * * ? *)  
+    '09PM':
+      Value: cron(0 13 * * ? *)  
+    '10PM':
+      Value: cron(0 14 * * ? *)  
+    '11PM':
+      Value: cron(0 15 * * ? *)  
+Parameters:
+  EmailAddress:
+    Type: String
+    AllowedPattern: "^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$"
+    Description: Input correct Email Address to receive Billing information.
+  EmailCustomSubject:
+    Type: String
+    MaxLength: 20
+    MinLength: 2
+    Default: Custom Content 
+    Description: Input will show on Email Subject, length from 2 to 10.      
+  ScheduleTime:
+    Type: String
+    AllowedValues:
+      - '12AM'
+      - '01AM'
+      - '02AM'
+      - '03AM'
+      - '04AM'
+      - '05AM'
+      - '06AM'
+      - '07AM'
+      - '08AM'
+      - '09AM'
+      - '10AM'
+      - '11AM'
+      - '12PM'
+      - '01PM'
+      - '02PM'
+      - '03PM'
+      - '04PM'
+      - '05PM'
+      - '06PM'
+      - '07PM'
+      - '08PM'
+      - '09PM'
+      - '10PM'
+      - '11PM'
+    Default: '10AM'
+    Description: Choose time to receive Billing information.
+Resources:
+  NwcdLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: NwcdLambdaGetBillingRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+        -
+          PolicyName: NwcdLambdaGetBillingPolicy
+          PolicyDocument:
+            Statement:
+              - Action:
+                  - 'cloudwatch:Describe*'
+                  - 'cloudwatch:Get*'
+                  - 'cloudwatch:List*'
+                  - 'logs:*'
+                  - 'sns:*'
+                Effect: Allow
+                Resource: '*'
+  NwcdSnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: NwcdLambdaGetBillingSns
+      DisplayName: NwcdLambdaGetBillingSns
+      Subscription:
+        - Endpoint: !Ref EmailAddress
+          Protocol: email
+  NwcdLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: NwcdGetBillingLambda
+      Code:
+        S3Bucket: nwcdlab 
+        S3Key: cloudformation/lambdaBilling/main.zip
+      Handler: main.lambda_handler
+      Runtime: python3.7
+      Role: !GetAtt 
+        - NwcdLambdaRole
+        - Arn
+      Environment:
+        Variables:
+          SnsArn: !Ref NwcdSnsTopic
+          CustomSubject: !Ref EmailCustomSubject
+          AccountID: !Ref 'AWS::AccountId'
+      MemorySize: 128
+      Timeout: 300
+      Description: 'Lambda Function to get Billing metrics.'
+    DependsOn:
+      - NwcdSnsTopic  
+  NwcdScheduleRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: 'Schedule Rule For Lambda function NwcdGetBillingLambda'
+      Name: NwcdLambdaGetBillingRule
+      ScheduleExpression: !FindInMap 
+        - CronSchedule
+        - !Ref ScheduleTime
+        - Value
+      State: 'ENABLED'
+      Targets: 
+        - 
+          Arn: !GetAtt 
+            - NwcdLambdaFunction
+            - Arn
+          Id: 'NwcdLambdaGetBillingRule'
+    DependsOn:
+      - NwcdLambdaFunction
+  NwcdPermissionForEventsToInvokeLambda: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: !Ref NwcdLambdaFunction
+      Action: 'lambda:InvokeFunction'
+      Principal: 'events.amazonaws.com'
+      SourceArn: !GetAtt
+        - NwcdScheduleRule
+        - Arn
+    DependsOn:
+      - NwcdLambdaFunction
+Outputs:
+  SnsArn:
+    Description: SnsArn
+    Value: !Ref NwcdSnsTopic
+  LambdaArn:
+    Description: LambdaArnbb
+    Value: !GetAtt 
+      - NwcdLambdaFunction
+      - Arn
