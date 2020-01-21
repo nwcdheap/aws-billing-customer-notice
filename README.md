@@ -19,6 +19,6 @@
 
 ### 其他事项
 1. 如果需要自定义请下载模板进行修改
-2. 如果需要发布在北京区域，请修改图标的链接地址中的cn-northwest-1为cn-north-1
+2. 如果需要发布在北京区域，请修改Launch Stack图标的链接地址中的https://console.amazonaws.cn/cloudformation/home?region=cn-northwest-1 的cn-northwest-1修改为cn-north-1
 3. 如果需要发布在AWS全球区域，请自行测试。AWS全球区域的Billing Alarm位于us-east-1
 4. 如果遇到任何问题，请发布issue或联系kunma@nwcdcloud.cn
