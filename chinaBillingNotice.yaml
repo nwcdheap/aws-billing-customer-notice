@@ -60,7 +60,7 @@ Parameters:
     MaxLength: 100
     MinLength: 2
     Default: Custom Content 
-    Description: Input will show on Email Subject, length from 2 to 10.      
+    Description: Input will show on Email Subject, length from 2 to 100.      
   ScheduleTime:
     Type: String
     AllowedValues:
