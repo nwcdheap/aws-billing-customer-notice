@@ -57,10 +57,10 @@ Parameters:
     Description: Input correct Email Address to receive Billing information.
   EmailCustomSubject:
     Type: String
-    MaxLength: 20
+    MaxLength: 100
     MinLength: 2
     Default: Custom Content 
-    Description: Input will show on Email Subject, length from 2 to 10.      
+    Description: Input will show on Email Subject, length from 2 to 100.      
   ScheduleTime:
     Type: String
     AllowedValues:
